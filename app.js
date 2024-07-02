@@ -31,7 +31,7 @@ app.post("/register", async (request, response) => {
   let postregister = `SELECT * FROM user WHERE username='${username}'`;
   let register = await database.get(postregister);
   if (register === undefined) {
-    let createUser = `INSERT INTO user(username,name,password,gender,location) VALUES ('${username}','${name}','${password}','${gender}','${location}');`;
+    let createUser = `INSERT INTO user(username,name,password,gender,location) VALUES ('${username}','${name}','${hashedpassword}','${gender}','${location}');`;
     if (password.length < 5) {
       response.status(400);
       response.send("Password is too short");
@@ -49,16 +49,18 @@ app.post("/login", async (request, response) => {
   let { username, password } = request.body;
   const selectUserquery = `SELECT * FROM user WHERE username='${username}';`;
   const dbUser = await database.get(selectUserquery);
-  if (dbUser !== true) {
-    response.status = 400;
+
+  if (dbUser === undefined) {
+    response.status(400);
     response.send("Invalid user");
-  }
-  if (password !== true) {
-    response.status = 400;
-    response.send("Invalid Password");
   } else {
-    response.status = 200;
-    response.send("User created successfully");
+    const isPasswordMatched = await bcrypt.compare(password, dbUser.password);
+    if (isPasswordMatched === true) {
+      response.send("Login success!");
+    } else {
+      response.status(400);
+      response.send("Invalid password");
+    }
   }
 });
 app.put("/change-password", async (request, response) => {
@@ -71,9 +73,9 @@ app.put("/change-password", async (request, response) => {
   } else {
     const isValidPassword = await bcrypt.compare(oldPassword, dbUser.password);
     if (isValidPassword === true) {
-      const len_ofnew_password = newPassword.length;
-      if (len_ofnew_password < 5) {
-        response, status(400);
+      const lenofnewPassword = newPassword.length;
+      if (lenofnewPassword < 5) {
+        response.status(400);
         response.send("Password is too short");
       } else {
         const encryptPass = await bcrypt.hash(newPassword, 10);
